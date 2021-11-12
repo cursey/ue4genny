@@ -1,4 +1,5 @@
 project(ue4genny)
+set(UE4_SOURCE_DIR "${CMAKE_SOURCE_DIR}/Source" CACHE PATH "Where the UE4 source is located")
 set(SDK_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/sdk" CACHE PATH "Where the generated SDK files will go")
 set(CONFIG_HPP "DRGConfig.hpp" CACHE STRING "The config header file to use")
 add_library(ue4genny SHARED 
@@ -11,12 +12,13 @@ add_library(ue4genny SHARED
     "src/kanan/core/Utility.cpp"
     "src/UE4Genny.cpp"
     "src/UE4Impl.cpp"
- "src/DRGConfig.hpp")
+    "src/DRGConfig.hpp"
+)
 target_include_directories(ue4genny PUBLIC 
     "src"
-    "Source/Runtime/Core/Public" 
-    "Source/Runtime/CoreUObject/Public"
-    "Source/Runtime/TraceLog/Public"
+    "${UE4_SOURCE_DIR}/Runtime/Core/Public" 
+    "${UE4_SOURCE_DIR}/Runtime/CoreUObject/Public"
+    "${UE4_SOURCE_DIR}/Runtime/TraceLog/Public"
 )
 target_compile_definitions(ue4genny PUBLIC 
     UBT_COMPILED_PLATFORM=Windows 
