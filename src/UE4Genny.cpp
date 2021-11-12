@@ -135,7 +135,7 @@ std::string get_fproperty_typename(FProperty* fprop) {
             auto enum_name = narrow(uenum->GetFName());
             enum_name = enum_name.substr(enum_name.find_last_of(':') + 1);
 
-            if (uenum->CppForm == UEnum::ECppForm::Namespaced) {
+            if (uenum->GetCppForm()  == UEnum::ECppForm::Namespaced) {
                 auto ns_name = enum_name;
                 enum_name = narrow(uenum->CppType);
                 enum_name = enum_name.substr(enum_name.find_last_of(':') + 1);
@@ -522,7 +522,7 @@ void generate() {
 
     uobj->variable("ClassPrivate")
         ->type(uclass->ptr())
-        ->offset(offsetof(UObject, ClassPrivate)); // NOTE: Make ClassPrivate public.
+        ->offset(offsetof(UObjectBase, ClassPrivate)); // NOTE: Make ClassPrivate public.
 
     g->type("FName")->size(sizeof(FName));
     g->type("FString")->size(sizeof(FString));
