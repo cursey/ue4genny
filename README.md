@@ -7,7 +7,7 @@
 **UE4Genny** requires some assembly (work on your part). It does not function out of the box. It contains **NO** code from Unreal Engine 4, you must provide that yourself. Here are the general steps to get **UE4Genny** working:
 
 1. Clone this repository.
-2. Download the source code for the correct version of UE4 that the game you are targetting uses.
+2. Download the source code for the correct version of UE4 that the game you are targeting uses.
     * You should also try using the same compiler the game uses to compile **UE4Genny**. 
 3. Copy the `Engine/Source/` directory from UE4 to your **UE4Genny** directory (`<UE4Genny directory>/Source/`). **UE4Genny** will use this copy of UE4's source code.
     * If you already have a copy of UE4 somewhere else and you would prefer to use that, you can set the CMake variable `UE4_SOURCE_DIR` to the directory you want to use.
@@ -16,7 +16,7 @@
     * `<UE4 Source>/Runtime/CoreUObject/Public/UObject/UnrealType.h`: Make `FBoolProperty::FieldSize`, `FBoolProperty::ByteMask` and `FBoolProperty::FieldMask` public.
     * `<UE4 Source>/Runtime/CoreUObject/Public/UObject/UObjectBase.h`: Make `UObjectBase::ClassPrivate` public.
 5. **UE4Genny** should now compile.
-6. Make a new config header file for the game you are targetting (an example is provided in `src/DRGConfig.hpp` which works for the current Xbox Game Pass version of *Deep Rock Galactic*).
+6. Make a new config header file for the game you are targeting (an example is provided in `src/DRGConfig.hpp` which works for the current Xbox Game Pass version of *Deep Rock Galactic*).
 7. Set the CMake variable `CONFIG_HPP` to the newly created config header file.
 8. Define the following constants in your newly created config header file (some reverse engineering required):
 
