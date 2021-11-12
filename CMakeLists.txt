@@ -1,5 +1,6 @@
 project(ue4genny)
-set(SDK_OUTPUT_DIR ${CMAKE_SOURCE_DIR}/sdk CACHE PATH "Where the generated SDK files will go")
+set(SDK_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/sdk" CACHE PATH "Where the generated SDK files will go")
+set(CONFIG_HPP "DRGConfig.hpp" CACHE STRING "The config header file to use")
 add_library(ue4genny SHARED 
     "src/kanan/core/Memory.cpp"
     "src/kanan/core/Module.cpp"
@@ -35,7 +36,7 @@ target_compile_definitions(ue4genny PUBLIC
     UNICODE
     _UNICODE
     NOMINMAX
-    CONFIG_HPP="DRGConfig.hpp"
+    CONFIG_HPP="${CONFIG_HPP}"
     SDK_OUTPUT_DIR="${SDK_OUTPUT_DIR}"
 )
 target_compile_features(ue4genny PUBLIC cxx_std_17)
