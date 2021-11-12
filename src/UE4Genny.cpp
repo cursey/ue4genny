@@ -466,7 +466,7 @@ void generate_ustruct_members(genny::Struct* genny_struct, UStruct* ustruct) {
 
 void generate_uclass_functions(genny::Struct* genny_struct, UClass* uclass) {
     // Add StaticClass().
-    auto static_class = genny_struct->static_function("GetPrivateStaticClass")->returns(genny_struct->ptr());
+    auto static_class = genny_struct->static_function("StaticClass")->returns(genny_struct->ptr());
     std::ostringstream os{};
     os << "return (";
     static_class->returns()->generate_typename_for(os, genny_struct);
