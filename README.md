@@ -2,6 +2,8 @@
 
 **UE4Genny** is an SDK generator for Unreal Engine 4 games. It aims to provide a functional SDK that requires little to no editing after generation to use. Actual SDK generation is done via the sister project [SdkGenny](https://github.com/cursey/sdkgenny).
 
+***UE4Genny is intended for MODDING games not CHEATING!***
+
 ## Usage
 
 **UE4Genny** requires some assembly (work on your part). It does not function out of the box. It contains **NO** code from Unreal Engine 4, you must provide that yourself. Here are the general steps to get **UE4Genny** working:
@@ -18,7 +20,7 @@
 5. **UE4Genny** should now compile.
 6. Make a new config header file for the game you are targeting (an example is provided in `src/DRGConfig.hpp` which works for the current Xbox Game Pass version of *Deep Rock Galactic*).
 7. Set the CMake variable `CONFIG_HPP` to the newly created config header file.
-8. Define the following constants in your newly created config header file (some reverse engineering required):
+8. Define the following constants in your newly created config header file (you need to find the values for these constants yourself):
 
 ```
 // A memory pattern string that can be used to find the games GUObjectArray global variable.
