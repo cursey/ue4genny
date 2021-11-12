@@ -508,7 +508,7 @@ void generate() {
     auto uobj = g->class_("UObject");
 
     auto ufunc = g->class_("UFunction");
-    auto uobj_process_event = uobj->virtual_function("ProcessEvent")->vtable_index(66);
+    auto uobj_process_event = uobj->virtual_function("ProcessEvent")->vtable_index(UOBJECT_PROCESSEVENT_INDEX);
     uobj_process_event->param("Function")->type(ufunc->ptr());
     uobj_process_event->param("Parms")->type(g->type("void")->ptr());
 
