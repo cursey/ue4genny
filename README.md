@@ -33,7 +33,7 @@ constexpr int UOBJECT_PROCESSEVENT_INDEX = ...;
 
 At this point you should be able to compile a game specific version of **UE4Genny** that will work with your target game. If it still does not work, attach a debugger and see what the problem is. Occasionally you will need to modify certain base structures so that they match what the game has (usually not required if you're using the correct version of UE4's source for a given game). You may also need to edit or add UE4 specific compiler definitions in the `CMakeLists.txt`. If it isn't working now it's up to you to fiddle around and figure out what changes you need to make to get everything that **UE4Genny** uses to match up with what your target game is using.
 
-At the end of this process, simply inject `**UE4Genny**.dll` into the target game and wait for an `sdk/` folder to appear.
+At the end of this process, simply inject `UE4Genny.dll` into the target game and wait for an `sdk/` folder to appear.
 
 ## Note about compatibility
 
