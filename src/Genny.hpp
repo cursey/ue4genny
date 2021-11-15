@@ -901,6 +901,7 @@ protected:
 
     void generate_bitfield(std::ostream& os, uintptr_t offset) const {
         auto last_bit = 0;
+        Type* bitfield_type{};
 
         for (auto&& [bit_offset, var] : bitfield(offset)) {
             if (bit_offset - last_bit > 0) {
@@ -911,6 +912,18 @@ protected:
 
             var->generate(os);
             last_bit = bit_offset + var->bit_size();
+            bitfield_type = var->type();
+        }
+
+        // Fill out the remaining space in the bitfield if necessary.
+         auto num_bits = bitfield_type->size() * CHAR_BIT;
+
+        if (last_bit != num_bits) {
+            auto bit_offset = num_bits;
+
+            bitfield_type->generate_typename_for(os, nullptr);
+            os << " pad_bitfield_" << std::hex << offset << "_" << std::hex << last_bit << " : " << std::dec
+               << bit_offset - last_bit << ";\n";
         }
     }
 
