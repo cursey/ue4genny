@@ -384,7 +384,7 @@ void generate_ufunction(genny::Struct* s, UFunction* ufunc) {
     // Generate the procedure.
     std::ostringstream os{};
 
-    os << "static auto func = (UFunction*)(*GUObjectArray())[" << ufunc->GetUniqueID() << "];\n";
+    os << "static auto func = (UFunction*)(get_GUObjectArray()->IndexToObject(" << ufunc->GetUniqueID() << "));\n";
 
     param_struct->generate(os);
     param_struct->generate_typename_for(os, nullptr);
@@ -470,7 +470,7 @@ void generate_uclass_functions(genny::Struct* genny_struct, UClass* uclass) {
     std::ostringstream os{};
     os << "return (";
     static_class->returns()->generate_typename_for(os, genny_struct);
-    os << ")(*GUObjectArray())[" << uclass->GetUniqueID() << "];";
+    os << ")(get_GUObjectArray()->IndexToObject(" << uclass->GetUniqueID() << "));";
     static_class->procedure(os.str());
 
     // Add functions.
