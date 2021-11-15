@@ -2,6 +2,7 @@ project(ue4genny)
 set(UE4_SOURCE_DIR "${CMAKE_SOURCE_DIR}/Source" CACHE PATH "Where the UE4 source is located")
 set(SDK_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/sdk" CACHE PATH "Where the generated SDK files will go")
 set(CONFIG_HPP "DRGConfig.hpp" CACHE STRING "The config header file to use")
+set(SDK_ADDITIONAL_INCLUDE_HPP "" CACHE STRING "An optional additional header to include in every generated file")
 add_library(ue4genny SHARED 
     "src/kanan/core/Memory.cpp"
     "src/kanan/core/Module.cpp"
@@ -41,4 +42,7 @@ target_compile_definitions(ue4genny PUBLIC
     CONFIG_HPP="${CONFIG_HPP}"
     SDK_OUTPUT_DIR="${SDK_OUTPUT_DIR}"
 )
+if(SDK_ADDITIONAL_INCLUDE_HPP)
+    target_compile_definitions(ue4genny PUBLIC SDK_ADDITIONAL_INCLUDE_HPP="${SDK_ADDITIONAL_INCLUDE_HPP}")
+endif()
 target_compile_features(ue4genny PUBLIC cxx_std_17)

@@ -486,7 +486,10 @@ void generate() {
     auto g = sdk.global_ns();
 
     sdk.include("cstdint");
-    sdk.include("UE4Types.hpp");
+
+#ifdef SDK_ADDITIONAL_INCLUDE_HPP
+    sdk.include_local(SDK_ADDITIONAL_INCLUDE_HPP);
+#endif
 
     // Add basic types
     g->type("int8_t")->size(1);
