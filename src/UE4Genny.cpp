@@ -19,7 +19,7 @@
 #include CONFIG_HPP
 
 FUObjectArray* get_GUObjectArray() {
-    static FUObjectArray* obj_array = nullptr;
+    static FUObjectArray* obj_array{};
 
     if (obj_array == nullptr) {
         OutputDebugString(L"Finding GUObjectArray...");
@@ -296,8 +296,7 @@ void generate_fproperty(genny::Struct* s, FProperty* fprop) {
             auto mask = fbool->ByteMask;
             auto offset = -1;
 
-            for (; mask != 0; mask /= 2, ++offset)
-                ;
+            for (; mask != 0; mask /= 2, ++offset);
 
             bf->type(prop_type);
             bf->bit_offset(offset);
@@ -383,9 +382,7 @@ void generate_ufunction(genny::Struct* s, UFunction* ufunc) {
 
     // Generate the procedure.
     std::ostringstream os{};
-
     os << "static auto func = (UFunction*)(get_GUObjectArray()->IndexToObject(" << ufunc->GetUniqueID() << ")->Object);\n";
-
     param_struct->generate(os);
     param_struct->generate_typename_for(os, nullptr);
     os << " params{};\n";
@@ -468,9 +465,10 @@ void generate_uclass_functions(genny::Struct* genny_struct, UClass* uclass) {
     // Add StaticClass().
     auto static_class = genny_struct->static_function("StaticClass")->returns(genny_struct->ptr());
     std::ostringstream os{};
+    os << "static auto res = get_GUObjectArray()->IndexToObject(" << uclass->GetUniqueID() << ")->Object;\n";
     os << "return (";
     static_class->returns()->generate_typename_for(os, genny_struct);
-    os << ")(get_GUObjectArray()->IndexToObject(" << uclass->GetUniqueID() << ")->Object);";
+    os << ")res;";
     static_class->procedure(os.str());
 
     // Add functions.
@@ -581,6 +579,7 @@ void generate() {
 
 void startup_thread() {
     generate();
+    MessageBox(nullptr, L"SDK generation finished.", L"UE4Genny", MB_ICONINFORMATION);
 }
 
 BOOL WINAPI DllMain(HINSTANCE dllHandle, DWORD reason, void* reserved) {
