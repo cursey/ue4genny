@@ -1216,8 +1216,9 @@ public:
 
         if (!m_children.empty()) {
             os << "public:\n";
-            generate_internal(os);
         }
+
+        generate_internal(os);
 
         os << "}; // Size: 0x" << std::hex << size() << "\n";
     }
