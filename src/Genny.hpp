@@ -65,7 +65,10 @@ private:
 class Object {
 public:
     Object() = delete;
-    explicit Object(std::string_view name) : m_name{name} {}
+    explicit Object(std::string_view name) : m_name{name} {
+        m_name.erase(std::remove(m_name.begin(), m_name.end(), '?'), m_name.end());
+        m_name.erase(std::remove(m_name.begin(), m_name.end(), '!'), m_name.end());
+    }
     virtual ~Object() = default;
 
     const auto& name() const { return m_name; }
