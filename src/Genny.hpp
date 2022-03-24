@@ -807,7 +807,8 @@ protected:
         Indent _{os};
 
         for (auto&& [name, value] : m_values) {
-            os << name << " = " << value << ",\n";
+            if (!m_type || 1ull << (m_type->size() * 8) > value)
+                os << name << " = " << value << ",\n";
         }
     }
 };
@@ -1386,6 +1387,8 @@ protected:
                 types_to_include.emplace(e);
             } else if (auto s = dynamic_cast<Struct*>(t)) {
                 types_to_include.emplace(s);
+            } else if (auto a = dynamic_cast<Array*>(t)) {
+                add_type(a->of());
             }
         };
 
