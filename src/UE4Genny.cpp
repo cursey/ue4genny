@@ -109,6 +109,11 @@ void generate_uenum(genny::Namespace* g, UEnum* uenum) {
         }
 
         genny_enum = g->namespace_(ns_name)->enum_(enum_name);
+
+        // Unreal included types
+        if (ns_name == "ESearchCase" || ns_name == "ESearchDir")
+            genny_enum->set_generate(false);
+
         break;
     }
     default:
@@ -121,6 +126,11 @@ void generate_uenum(genny::Namespace* g, UEnum* uenum) {
         auto& name = uenum->Names[n];
         auto key = narrow(name.Key);
         key = key.substr(key.find_last_of(':') + 1);
+
+        // Work around windows defines PF_MAX AF_INET
+        if (key == "PF_MAX")
+            key = "PF_MAX_";
+
         genny_enum->value(key, name.Value);
     }
 }
@@ -555,6 +565,9 @@ void generate() {
             } else {
                 genny_struct = g->struct_(name);
             }
+
+            if (name == "FTimespan" || name == "FFloatInterval" || name == "FInt32Interval")
+                genny_struct->set_generate(false);
 
             generate_ustruct(genny_struct, ustruct);
             struct_map.emplace(genny_struct, ustruct);

@@ -221,6 +221,10 @@ public:
         return add(std::make_unique<T>(name, args...));
     }
 
+    void set_generate(bool generate) { m_generate = generate; }
+
+    bool get_generate() const { return m_generate; }
+
     // Returns the unique_ptr to the removed object.
     std::unique_ptr<Object> remove(Object* obj) {
         obj->m_owner = nullptr;
@@ -277,6 +281,7 @@ protected:
     friend class Sdk;
 
     Object* m_owner{};
+    bool m_generate{true};
 
     std::string m_name{};
     std::vector<std::unique_ptr<Object>> m_children{};
@@ -1357,6 +1362,9 @@ protected:
 
         os << "#pragma once\n";
 
+        if (!obj->get_generate())
+            return;
+
         for (auto&& include : m_includes) {
             os << "#include <" << include << ">\n";
         }
@@ -1527,6 +1535,9 @@ protected:
         if (!obj->has_any<Function>()) {
             return;
         }
+
+        if (!obj->get_generate())
+            return;
 
         // Skip generating a source file for an object if the functions it does have are all undefined.
         auto any_defined = false;
