@@ -38,7 +38,7 @@ UClass* UFunction::GetPrivateStaticClass() {
 FString FName::ToString() const {
     FString out;
 
-    static FString& (*toString)(const FName*, FString&){};
+    static void (*toString)(const FName*, FString&){};
 
     if (toString == nullptr) {
         OutputDebugString(L"Finding FName::ToString...");
@@ -52,5 +52,6 @@ FString FName::ToString() const {
         }
     }
 
-    return toString(this, out);
+    toString(this, out);
+    return out;
 }

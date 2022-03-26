@@ -65,7 +65,10 @@ private:
 class Object {
 public:
     Object() = delete;
-    explicit Object(std::string_view name) : m_name{name} {}
+    explicit Object(std::string_view name) : m_name{name} {
+        m_name.erase(std::remove(m_name.begin(), m_name.end(), '?'), m_name.end());
+        m_name.erase(std::remove(m_name.begin(), m_name.end(), '!'), m_name.end());
+    }
     virtual ~Object() = default;
 
     const auto& name() const { return m_name; }
@@ -218,6 +221,10 @@ public:
         return add(std::make_unique<T>(name, args...));
     }
 
+    void set_generate(bool generate) { m_generate = generate; }
+
+    bool get_generate() const { return m_generate; }
+
     // Returns the unique_ptr to the removed object.
     std::unique_ptr<Object> remove(Object* obj) {
         obj->m_owner = nullptr;
@@ -274,6 +281,7 @@ protected:
     friend class Sdk;
 
     Object* m_owner{};
+    bool m_generate{true};
 
     std::string m_name{};
     std::vector<std::unique_ptr<Object>> m_children{};
@@ -807,7 +815,8 @@ protected:
         Indent _{os};
 
         for (auto&& [name, value] : m_values) {
-            os << name << " = " << value << ",\n";
+            if (!m_type || 1ull << (m_type->size() * 8) > value)
+                os << name << " = " << value << ",\n";
         }
     }
 };
@@ -1353,6 +1362,9 @@ protected:
 
         os << "#pragma once\n";
 
+        if (!obj->get_generate())
+            return;
+
         for (auto&& include : m_includes) {
             os << "#include <" << include << ">\n";
         }
@@ -1386,6 +1398,8 @@ protected:
                 types_to_include.emplace(e);
             } else if (auto s = dynamic_cast<Struct*>(t)) {
                 types_to_include.emplace(s);
+            } else if (auto a = dynamic_cast<Array*>(t)) {
+                add_type(a->of());
             }
         };
 
@@ -1521,6 +1535,9 @@ protected:
         if (!obj->has_any<Function>()) {
             return;
         }
+
+        if (!obj->get_generate())
+            return;
 
         // Skip generating a source file for an object if the functions it does have are all undefined.
         auto any_defined = false;
