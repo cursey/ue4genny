@@ -964,35 +964,42 @@ public:
     Dependencies dependencies() {
         Dependencies deps{};
 
+        std::function<void(Object*)> add_dep{};
         auto add_hard_dep = [&](Object* obj) {
             if (obj != nullptr && obj != this && !obj->is_child_of(this) &&
                 (obj->is_a<Struct>() || obj->is_a<Enum>())) {
                 deps.hard.emplace(dynamic_cast<Type*>(obj));
             }
         };
-        auto add_soft_dep = [&](Object* obj) {
+        std::function<void(Object*)> add_soft_dep = [&](Object* obj) {
             if (auto ref = dynamic_cast<Reference*>(obj)) {
-                for (; ref->to()->is_a<Reference>(); ref = dynamic_cast<Reference*>(ref->to())) {
-                }
-
-                if (auto ty = ref->to(); ty != nullptr && ty != this && !obj->is_child_of(this) &&
-                                         (ty->is_a<Struct>() || ty->is_a<Enum>())) {
-                    deps.soft.emplace(ty);
+                add_soft_dep(ref->to());
+            } else if (obj != nullptr && obj != this && !obj->is_child_of(this) &&
+                                        (obj->is_a<Struct>() || obj->is_a<Enum>() || obj->is_a<GenericType>())) {
+                if (obj->is_a<Enum>()) {
+                    // Enums are always hard dependencies.
+                    add_hard_dep(obj);
+                } else if (obj->is_a<GenericType>()) {
+                    // GenericTypes may have hard or soft dependencies as template types.
+                    add_dep(obj);
+                } else {
+                    deps.soft.emplace(dynamic_cast<Type*>(obj));
                 }
             }
         };
-        std::function<void(Object*)> add_dep = [&](Object* obj) {
+        add_dep = [&](Object* obj) {
             if (auto arr = dynamic_cast<Array*>(obj)) {
-                return add_dep(arr->of());
+                add_dep(arr->of());
             }
             else if (auto gt = dynamic_cast<GenericType*>(obj)) {
                 for (auto&& type : gt->template_types()) {
                     add_dep(type);
                 }
+            } else if (auto ref = dynamic_cast<Reference*>(obj)) {
+                add_soft_dep(ref->to());
+            } else {
+                add_hard_dep(obj);
             }
-
-            add_hard_dep(obj);
-            add_soft_dep(obj);
         };
 
         for (auto&& parent : parents()) {
