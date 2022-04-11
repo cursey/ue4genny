@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cassert>
 #include <climits>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -65,10 +66,7 @@ private:
 class Object {
 public:
     Object() = delete;
-    explicit Object(std::string_view name) : m_name{name} {
-        m_name.erase(std::remove(m_name.begin(), m_name.end(), '?'), m_name.end());
-        m_name.erase(std::remove(m_name.begin(), m_name.end(), '!'), m_name.end());
-    }
+    explicit Object(std::string_view name) : m_name{name} {}
     virtual ~Object() = default;
 
     const auto& name() const { return m_name; }
@@ -221,10 +219,6 @@ public:
         return add(std::make_unique<T>(name, args...));
     }
 
-    void set_generate(bool generate) { m_generate = generate; }
-
-    bool get_generate() const { return m_generate; }
-
     // Returns the unique_ptr to the removed object.
     std::unique_ptr<Object> remove(Object* obj) {
         obj->m_owner = nullptr;
@@ -252,9 +246,10 @@ public:
     // necessary.
     std::function<std::string()> usable_name = [this] {
         std::string name{};
+        constexpr auto allowed_chars = "*&[]:";
 
         for (auto&& c : m_name) {
-            if (c == ' ') {
+            if (!std::isalnum(c) && std::strchr(allowed_chars, c) == nullptr) {
                 name += '_';
             } else {
                 name += c;
@@ -271,8 +266,34 @@ public:
     // The name used when declaring the object (only for types).
     std::function<std::string()> usable_name_decl = usable_name;
 
-    // The name used for file generation (only for types).
-    std::function<std::string()> file_name = usable_name;
+    std::filesystem::path path() {
+        if (m_owner == nullptr) {
+            return usable_name();
+        }
+
+        std::filesystem::path p{};
+        auto os = owners<Object>();
+
+        std::reverse(os.begin(), os.end());
+
+        for (auto&& o : os) {
+            if (o->is_a<Namespace>()) {
+                p /= o->usable_name();
+            } else if (o->is_a<Struct>()) {
+                p /= o->usable_name();
+                break;
+            }
+        }
+
+        if (m_owner->is_a<Namespace>()) {
+            p /= usable_name();
+        }
+
+        return p;
+    }
+
+    auto skip_generation(bool g) { m_skip_generation = g; return this; }
+    auto skip_generation() { return m_skip_generation; }
 
 protected:
     friend class Type;
@@ -281,11 +302,12 @@ protected:
     friend class Sdk;
 
     Object* m_owner{};
-    bool m_generate{true};
 
     std::string m_name{};
     std::vector<std::unique_ptr<Object>> m_children{};
     std::vector<std::string> m_metadata{};
+
+    bool m_skip_generation{};
 };
 
 template <typename T> T* cast(const Object* object) {
@@ -450,13 +472,33 @@ inline Array* Type::array_(size_t count) {
 
 class GenericType : public Type {
 public:
-    explicit GenericType(std::string_view name) : Type{name} {}
+    explicit GenericType(std::string_view name) : Type{name} {
+        usable_name = [this] {
+            std::string name{};
+            constexpr auto allowed_chars = "*&[]:<>, ";
+
+            for (auto&& c : m_name) {
+                if (!std::isalnum(c) && std::strchr(allowed_chars, c) == nullptr) {
+                    name += '_';
+                } else {
+                    name += c;
+                }
+            }
+
+            if (!name.empty() && isdigit(name[0])) {
+                name = "_" + name;
+            }
+
+            return name;
+        };
+    }
 
     auto template_types() const { return m_template_types; }
     auto template_type(Type* type) {
         m_template_types.emplace(type);
         return this;
     }
+
 
 protected:
     std::unordered_set<Type*> m_template_types{};
@@ -624,9 +666,9 @@ public:
         return this;
     }
 
-    auto&& dependent_types() const { return m_dependent_types; }
+    auto&& dependencies() const { return m_dependencies; }
     auto depends_on(Type* type) {
-        m_dependent_types.emplace(type);
+        m_dependencies.emplace(type);
         return this;
     }
 
@@ -650,7 +692,7 @@ public:
 protected:
     Type* m_return_value{};
     std::string m_procedure{};
-    std::unordered_set<Type*> m_dependent_types{};
+    std::unordered_set<Type*> m_dependencies{};
     bool m_is_defined{true};
 
     void generate_prototype(std::ostream& os) const {
@@ -792,6 +834,8 @@ public:
         }
     }
 
+    virtual void generate_forward_decl(std::ostream& os) const { os << "enum " << usable_name_decl() << ";\n"; }
+
     virtual void generate(std::ostream& os) const {
         os << "enum " << usable_name_decl();
         generate_type(os);
@@ -825,6 +869,7 @@ class EnumClass : public Enum {
 public:
     explicit EnumClass(std::string_view name) : Enum{name} {}
 
+    void generate_forward_decl(std::ostream& os) const override { os << "enum class " << usable_name_decl() << ";\n"; }
     void generate(std::ostream& os) const override {
         os << "enum class " << usable_name_decl();
         generate_type(os);
@@ -909,6 +954,87 @@ public:
         os << " {\n";
         generate_internal(os);
         os << "}; // Size: 0x" << std::hex << size() << "\n";
+    }
+
+    struct Dependencies {
+        std::unordered_set<Type*> hard{};
+        std::unordered_set<Type*> soft{};
+    };
+
+    Dependencies dependencies() {
+        Dependencies deps{};
+
+        auto add_hard_dep = [&](Object* obj) {
+            if (obj != nullptr && obj != this && !obj->is_child_of(this) &&
+                (obj->is_a<Struct>() || obj->is_a<Enum>())) {
+                deps.hard.emplace(dynamic_cast<Type*>(obj));
+            }
+        };
+        auto add_soft_dep = [&](Object* obj) {
+            if (auto ref = dynamic_cast<Reference*>(obj)) {
+                for (; ref->to()->is_a<Reference>(); ref = dynamic_cast<Reference*>(ref->to())) {
+                }
+
+                if (auto ty = ref->to(); ty != nullptr && ty != this && !obj->is_child_of(this) &&
+                                         (ty->is_a<Struct>() || ty->is_a<Enum>())) {
+                    deps.soft.emplace(ty);
+                }
+            }
+        };
+        std::function<void(Object*)> add_dep = [&](Object* obj) {
+            if (auto arr = dynamic_cast<Array*>(obj)) {
+                return add_dep(arr->of());
+            }
+            else if (auto gt = dynamic_cast<GenericType*>(obj)) {
+                for (auto&& type : gt->template_types()) {
+                    add_dep(type);
+                }
+            }
+
+            add_hard_dep(obj);
+            add_soft_dep(obj);
+        };
+
+        for (auto&& parent : parents()) {
+            add_hard_dep(parent);
+        }
+
+        for (auto&& var : get_all<Variable>()) {
+            add_dep(var->type());
+        }
+
+        for (auto&& var : get_all<Constant>()) {
+            add_dep(var->type());
+        }
+
+        for (auto&& fn : get_all<Function>()) {
+            for (auto&& param : fn->get_all<Parameter>()) {
+                add_dep(param->type());
+            }
+
+            add_dep(fn->returns());
+        }
+
+        for (auto&& s : get_all<Struct>()) {
+            auto s_deps = s->dependencies();
+
+            for (auto&& dep : s_deps.hard) {
+                add_hard_dep(dep);
+            }
+
+            for (auto&& dep : s_deps.soft) {
+                add_soft_dep(dep);
+            }
+        }
+
+        // If a type is both a hard and soft dependency, remove it from the soft dependencies.
+        for (auto&& dep : deps.hard) {
+            if (deps.soft.find(dep) != deps.soft.end()) {
+                deps.soft.erase(dep);
+            }
+        }
+
+        return deps;
     }
 
 protected:
@@ -1306,46 +1432,12 @@ protected:
     std::string m_source_extension{".cpp"};
     bool m_generate_namespaces{true};
 
-    std::filesystem::path path_for_object(Object* obj) const {
-        std::filesystem::path path{};
-        auto owners = obj->owners<Namespace>();
-
-        std::reverse(owners.begin(), owners.end());
-
-        for (auto&& owner : owners) {
-            if (owner->file_name().empty()) {
-                continue;
-            }
-
-            path /= owner->file_name();
+    template <typename T> void generate_header(const std::filesystem::path& sdk_path, T* obj) const {
+        if (obj->skip_generation()) {
+            return;
         }
 
-        path /= obj->file_name();
-
-        return path;
-    }
-
-    std::filesystem::path include_path_for_object(Object* obj) const {
-        auto path = path_for_object(obj);
-        path += m_header_extension;
-        return path;
-    }
-
-    std::filesystem::path source_path_for_object(Object* obj) const {
-        auto path = path_for_object(obj);
-        path += m_source_extension;
-        return path;
-    }
-
-    std::filesystem::path include_path(Object* from, Object* to) const {
-        auto to_path = std::filesystem::absolute(include_path_for_object(to));
-        auto from_path = std::filesystem::absolute(include_path_for_object(from));
-        auto rel_path = std::filesystem::relative(to_path.parent_path(), from_path.parent_path()) / to_path.filename();
-        return rel_path;
-    }
-
-    template <typename T> void generate_header(const std::filesystem::path& sdk_path, T* obj) const {
-        auto obj_inc_path = sdk_path / include_path_for_object(obj);
+        auto obj_inc_path = sdk_path / (obj->path() += m_header_extension);
         std::ofstream file_list{sdk_path / "file_list.txt", std::ios::app};
         file_list << "\"" << obj_inc_path.string() << "\" \\\n";
         std::filesystem::create_directories(obj_inc_path.parent_path());
@@ -1362,9 +1454,6 @@ protected:
 
         os << "#pragma once\n";
 
-        if (!obj->get_generate())
-            return;
-
         for (auto&& include : m_includes) {
             os << "#include <" << include << ">\n";
         }
@@ -1373,120 +1462,55 @@ protected:
             os << "#include \"" << include << "\"\n";
         }
 
-        std::unordered_set<Constant*> constants{};
-        std::unordered_set<Variable*> variables{};
-        std::unordered_set<Function*> functions{};
-        std::unordered_set<Struct*> structs{};
         std::unordered_set<Type*> types_to_include{};
-        std::unordered_set<Struct*> structs_to_forward_decl{};
-        std::function<void(Type*)> add_type = [&](Type* t) {
-            if (auto ref = dynamic_cast<Reference*>(t)) {
-                auto to = ref->to();
-
-                if (auto e = dynamic_cast<Enum*>(to)) {
-                    types_to_include.emplace(e);
-                } else if (auto s = dynamic_cast<Struct*>(to)) {
-                    structs_to_forward_decl.emplace(s);
-                } else {
-                    add_type(to);
-                }
-            } else if (auto gt = dynamic_cast<GenericType*>(t)) {
-                for (auto&& tt : gt->template_types()) {
-                    add_type(tt);
-                }
-            } else if (auto e = dynamic_cast<Enum*>(t)) {
-                types_to_include.emplace(e);
-            } else if (auto s = dynamic_cast<Struct*>(t)) {
-                types_to_include.emplace(s);
-            } else if (auto a = dynamic_cast<Array*>(t)) {
-                add_type(a->of());
-            }
-        };
-
-        obj->get_all_in_children<Constant>(constants);
-        obj->get_all_in_children<Variable>(variables);
-        obj->get_all_in_children<Function>(functions);
-        obj->get_all_in_children<Struct>(structs);
-
-        for (auto&& c : constants) {
-            add_type(c->type());
-        }
-
-        for (auto&& var : variables) {
-            add_type(var->type());
-        }
-
-        for (auto&& fn : functions) {
-            for (auto&& param : fn->get_all<Parameter>()) {
-                add_type(param->type());
-            }
-            add_type(fn->returns());
-        }
-
-        for (auto&& s : structs) {
-            for (auto&& parent : s->parents()) {
-                types_to_include.emplace(parent); 
-            } 
-        }
+        std::unordered_set<Type*> types_to_forward_decl{};
+        std::set<std::filesystem::path> includes{};
 
         if (auto s = dynamic_cast<Struct*>(obj)) {
-            for (auto&& parent : s->parents()) {
-                types_to_include.emplace(parent);
-            }
+            auto deps = s->dependencies();
+            types_to_include = deps.hard;
+            types_to_forward_decl = deps.soft;
         }
 
-        // Go through all the types to include and replace nested types with the types they're nested within.
-        for (auto it = types_to_include.begin(); it != types_to_include.end();) {
-            if (auto topmost = (*it)->topmost_owner<Struct>()) {
-                it = types_to_include.erase(it);
-
-                // Skip adding the topmost owner if it's the object we're generating a header for.
-                if (topmost == (Object*)obj) {
-                    continue;
-                }
-
-                if (auto&& [_, was_inserted] = types_to_include.emplace(topmost); was_inserted) {
-                    it = types_to_include.begin();
-                }
-            } else {
-                ++it;
-            }
+        for (auto&& ty : types_to_include) {
+            includes.emplace(ty->path() += m_header_extension);
         }
 
-        for (auto&& type : types_to_include) {
-            os << "#include \"" << include_path(obj, type).string() << "\"\n";
+        for (auto&& inc : includes) {
+            os << "#include \"" << std::filesystem::relative(inc, obj->path().parent_path()).string() << "\"\n";
         }
 
-        for (auto&& type : structs_to_forward_decl) {
-            // Only forward decl structs we haven't already included.
-            if (types_to_include.find(type) == types_to_include.end() && !type->is_child_of(obj)) {
-                auto owners = type->owners<Namespace>();
+        for (auto&& type : types_to_forward_decl) {
+            auto owners = type->owners<Namespace>();
 
-                if (owners.size() > 1 && m_generate_namespaces) {
-                    std::reverse(owners.begin(), owners.end());
+            if (owners.size() > 1 && m_generate_namespaces) {
+                std::reverse(owners.begin(), owners.end());
 
-                    os << "namespace ";
+                os << "namespace ";
 
-                    for (auto&& owner : owners) {
-                        if (owner->usable_name().empty()) {
-                            continue;
-                        }
-
-                        os << owner->usable_name();
-
-                        if (owner != owners.back()) {
-                            os << "::";
-                        }
+                for (auto&& owner : owners) {
+                    if (owner->usable_name().empty()) {
+                        continue;
                     }
 
-                    os << " {\n";
+                    os << owner->usable_name();
+
+                    if (owner != owners.back()) {
+                        os << "::";
+                    }
                 }
 
-                type->generate_forward_decl(os);
+                os << " {\n";
+            }
 
-                if (owners.size() > 1 && m_generate_namespaces) {
-                    os << "}\n";
-                }
+            if (auto s = dynamic_cast<Struct*>(type)) {
+                s->generate_forward_decl(os);
+            } else if (auto e = dynamic_cast<Enum*>(type)) {
+                e->generate_forward_decl(os);
+            }
+
+            if (owners.size() > 1 && m_generate_namespaces) {
+                os << "}\n";
             }
         }
 
@@ -1531,29 +1555,33 @@ protected:
     }
 
     template <typename T> void generate_source(const std::filesystem::path& sdk_path, T* obj) const {
+        if (obj->skip_generation()) {
+            return;
+        }
+
         // Skip generating a source file for an object with no functions.
         if (!obj->has_any<Function>()) {
             return;
         }
 
-        if (!obj->get_generate())
-            return;
+        // Skip generating a source file for an object if all the functions it does have lack a procedure.
+        std::unordered_set<Function*> functions{};
+        obj->get_all_in_children<Function>(functions);
 
-        // Skip generating a source file for an object if the functions it does have are all undefined.
-        auto any_defined = false;
+        auto any_procedure = false;
 
-        for (auto&& fn : obj->get_all<Function>()) {
-            if (fn->defined()) {
-                any_defined = true;
+        for (auto&& fn : functions) {
+            if (!fn->procedure().empty()) {
+                any_procedure = true;
                 break;
             }
         }
 
-        if (!any_defined) {
+        if (!any_procedure) {
             return;
         }
 
-        auto obj_src_path = sdk_path / source_path_for_object(obj);
+        auto obj_src_path = sdk_path / (obj->path() += m_source_extension);
         std::ofstream file_list{sdk_path / "file_list.txt", std::ios::app};
         file_list << "\"" << obj_src_path.string() << "\" \\\n";
 
@@ -1569,51 +1597,28 @@ protected:
             }
         }
 
-        std::unordered_set<Variable*> variables{};
-        std::unordered_set<Function*> functions{};
         std::unordered_set<Type*> types_to_include{};
-        std::function<void(Type*)> add_type = [&](Type* t) {
-            if (auto ref = dynamic_cast<Reference*>(t)) {
-                auto to = ref->to();
 
-                if (auto e = dynamic_cast<Enum*>(to)) {
-                    types_to_include.emplace(e);
-                } else if (auto s = dynamic_cast<Struct*>(to)) {
-                    types_to_include.emplace(s);
-                } else {
-                    add_type(to);
-                }
-            } else if (auto gt = dynamic_cast<GenericType*>(t)) {
-                for (auto&& tt : gt->template_types()) {
-                    add_type(tt);
-                }
-            } else if (auto e = dynamic_cast<Enum*>(t)) {
-                types_to_include.emplace(e);
-            } else if (auto s = dynamic_cast<Struct*>(t)) {
-                types_to_include.emplace(s);
-            }
-        };
-
-        if (obj->is_a<Type>()) {
-            add_type(obj);
+        if (auto s = dynamic_cast<Struct*>(obj)) {
+            auto deps = s->dependencies();
+            types_to_include = deps.hard;
+            types_to_include.merge(deps.soft);
+            types_to_include.emplace(s);
         }
-
-        obj->get_all_in_children<Function>(functions);
 
         for (auto&& fn : functions) {
-            for (auto&& param : fn->get_all<Parameter>()) {
-                add_type(param->type());
-            }
-            for (auto&& dependent : fn->dependent_types()) {
-                add_type(dependent);
-            }
-            add_type(fn->returns());
+            auto deps = fn->dependencies();
+            types_to_include.merge(deps);
         }
 
-        for (auto&& type : types_to_include) {
-            if (!type->is_child_of(obj)) {
-                os << "#include \"" << include_path(obj, type).string() << "\"\n";
-            }
+        std::set<std::filesystem::path> includes{};
+
+        for (auto&& ty : types_to_include) {
+            includes.emplace(ty->path() += m_header_extension);
+        }
+
+        for (auto&& inc : includes) {
+            os << "#include \"" << std::filesystem::relative(inc, obj->path().parent_path()).string() << "\"\n";
         }
 
         for (auto&& fn : functions) {

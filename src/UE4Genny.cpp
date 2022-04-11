@@ -112,7 +112,7 @@ void generate_uenum(genny::Namespace* g, UEnum* uenum) {
 
         // Unreal included types
         if (ns_name == "ESearchCase" || ns_name == "ESearchDir")
-            genny_enum->set_generate(false);
+            genny_enum->skip_generation(true);
 
         break;
     }
@@ -567,7 +567,7 @@ void generate() {
             }
 
             if (name == "FTimespan" || name == "FFloatInterval" || name == "FInt32Interval")
-                genny_struct->set_generate(false);
+                genny_struct->skip_generation(true);
 
             generate_ustruct(genny_struct, ustruct);
             struct_map.emplace(genny_struct, ustruct);
