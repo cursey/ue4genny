@@ -39,6 +39,7 @@ target_compile_definitions(ue4genny PUBLIC
     UNICODE
     _UNICODE
     NOMINMAX
+    WINVER=0x0A00
     CONFIG_HPP="${CONFIG_HPP}"
     SDK_OUTPUT_DIR="${SDK_OUTPUT_DIR}"
 )

@@ -4,8 +4,6 @@
 
 #include "UObject/UObjectArray.h"
 
-#include <Windows.h>
-
 FUObjectArray* get_GUObjectArray();
 UObjectBase* find_object(const char* obj_path);
 std::string narrow(const FString& fstr);
