@@ -783,6 +783,8 @@ public:
 
         if (m_procedure.empty()) {
             os << " = 0;\n";
+        } else {
+            os << ";\n";
         }
     }
 
