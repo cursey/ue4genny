@@ -22,6 +22,7 @@ target_include_directories(ue4genny PUBLIC
     "${UE4_SOURCE_DIR}/Runtime/TraceLog/Public"
 )
 target_compile_definitions(ue4genny PUBLIC 
+    COREUOBJECT_VTABLE=
     UBT_COMPILED_PLATFORM=Windows 
     UE_BUILD_SHIPPING=1 
     WITH_EDITOR=0 

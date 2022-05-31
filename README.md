@@ -15,7 +15,7 @@
     * If you already have a copy of UE somewhere else and you would prefer to use that, you can set the CMake variable `UE4_SOURCE_DIR` to the directory you want to use.
 4. Compilation will likely fail at this point because some edits to the UE source is required. Namely:
     * `<UE4 Source>/Runtime/CoreUObject/Public/UObject/Class.h`: Make `UEnum::Names`, `UStruct::SuperStruct` public.
-    * `<UE4 Source>/Runtime/CoreUObject/Public/UObject/UnrealType.h`: Make `FBoolProperty::FieldSize`, `FBoolProperty::ByteMask` and `FBoolProperty::FieldMask` public.
+    * `<UE4 Source>/Runtime/CoreUObject/Public/UObject/UnrealType.h`: Make `UBoolProperty::FieldSize`, `UBoolProperty::ByteMask` and `UBoolProperty::FieldMask` public.
     * `<UE4 Source>/Runtime/CoreUObject/Public/UObject/UObjectBase.h`: Make `UObjectBase::ClassPrivate` public.
 5. **UE4Genny** should now compile.
 6. Make a new config header file for the game you are targeting (an example is provided in `src/DRGConfig.hpp` which works for the current Xbox Game Pass version of *Deep Rock Galactic*).

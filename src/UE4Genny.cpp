@@ -135,9 +135,9 @@ void generate_uenum(genny::Namespace* g, UEnum* uenum) {
     }
 }
 
-std::string get_fproperty_typename(FProperty* fprop) {
-    if (fprop->IsA<FByteProperty>()) {
-        auto fbyte = (FByteProperty*)fprop;
+std::string get_fproperty_typename(UProperty* fprop) {
+    if (fprop->IsA<UByteProperty>()) {
+        auto fbyte = (UByteProperty*)fprop;
 
         // TODO: Handle FByteProperty's that are actual enums.
         if (fbyte->Enum != nullptr) {
@@ -161,26 +161,26 @@ std::string get_fproperty_typename(FProperty* fprop) {
         } else {
             return "uint8_t";
         }
-    } else if (fprop->IsA<FInt8Property>()) {
+    } else if (fprop->IsA<UInt8Property>()) {
         return "int8_t";
-    } else if (fprop->IsA<FInt16Property>()) {
+    } else if (fprop->IsA<UInt16Property>()) {
         return "int16_t";
-    } else if (fprop->IsA<FIntProperty>()) {
+    } else if (fprop->IsA<UIntProperty>()) {
         return "int32_t";
-    } else if (fprop->IsA<FInt64Property>()) {
+    } else if (fprop->IsA<UInt64Property>()) {
         return "int64_t";
-    } else if (fprop->IsA<FUInt16Property>()) {
+    } else if (fprop->IsA<UUInt16Property>()) {
         return "uint16_t";
-    } else if (fprop->IsA<FUInt32Property>()) {
+    } else if (fprop->IsA<UUInt32Property>()) {
         return "uint32_t";
-    } else if (fprop->IsA<FUInt64Property>()) {
+    } else if (fprop->IsA<UUInt64Property>()) {
         return "uint64_t";
-    } else if (fprop->IsA<FFloatProperty>()) {
+    } else if (fprop->IsA<UFloatProperty>()) {
         return "float";
-    } else if (fprop->IsA<FDoubleProperty>()) {
+    } else if (fprop->IsA<UDoubleProperty>()) {
         return "double";
-    } else if (fprop->IsA<FBoolProperty>()) {
-        auto fbool = (FBoolProperty*)fprop;
+    } else if (fprop->IsA<UBoolProperty>()) {
+        auto fbool = (UBoolProperty*)fprop;
 
         // A FieldMask of 0xFF indicates a native bool, otherwise its part of a bitfield.
         // NOTE: Must make FieldMask public.
@@ -189,17 +189,17 @@ std::string get_fproperty_typename(FProperty* fprop) {
         } else {
             return "uint8_t";
         }
-    } else if (fprop->IsA<FObjectProperty>()) {
-        auto fobj = (FObjectProperty*)fprop;
+    } else if (fprop->IsA<UObjectProperty>()) {
+        auto fobj = (UObjectProperty*)fprop;
         if (auto uclass = fobj->PropertyClass) {
             return kanan::narrow(uclass->GetPrefixCPP()) + narrow(uclass->GetFName()) + '*';
         }
-    } else if (fprop->IsA<FStructProperty>()) {
-        auto fstruct = (FStructProperty*)fprop;
+    } else if (fprop->IsA<UStructProperty>()) {
+        auto fstruct = (UStructProperty*)fprop;
         auto ustruct = fstruct->Struct;
         return kanan::narrow(ustruct->GetPrefixCPP()) + narrow(ustruct->GetFName());
-    } else if (fprop->IsA<FArrayProperty>()) {
-        auto farray = (FArrayProperty*)fprop;
+    } else if (fprop->IsA<UArrayProperty>()) {
+        auto farray = (UArrayProperty*)fprop;
         auto inner = farray->Inner;
         auto inner_typename = get_fproperty_typename(inner);
 
@@ -208,12 +208,12 @@ std::string get_fproperty_typename(FProperty* fprop) {
         }
 
         return "TArray<" + inner_typename + '>';
-    } else if (fprop->IsA<FNameProperty>()) {
+    } else if (fprop->IsA<UNameProperty>()) {
         return "FName";
-    } else if (fprop->IsA<FStrProperty>()) {
+    } else if (fprop->IsA<UStrProperty>()) {
         return "FString";
-    } else if (fprop->IsA<FEnumProperty>()) {
-        auto fenum = (FEnumProperty*)fprop;
+    } else if (fprop->IsA<UEnumProperty>()) {
+        auto fenum = (UEnumProperty*)fprop;
         auto uenum = fenum->GetEnum();
         auto enum_name = narrow(uenum->GetFName());
         enum_name = enum_name.substr(enum_name.find_last_of(':') + 1);
@@ -236,7 +236,7 @@ std::string get_fproperty_typename(FProperty* fprop) {
     return "";
 }
 
-genny::Type* genny_type_for_fproperty(genny::Namespace* g, FProperty* fprop) {
+genny::Type* genny_type_for_fproperty(genny::Namespace* g, UProperty* fprop) {
     auto prop_typename = get_fproperty_typename(fprop);
     genny::Type* prop_type{};
     auto ns = g;
@@ -251,8 +251,8 @@ genny::Type* genny_type_for_fproperty(genny::Namespace* g, FProperty* fprop) {
         }
     }
 
-    if (fprop->IsA<FByteProperty>()) {
-        auto fbyte = (FByteProperty*)fprop;
+    if (fprop->IsA<UByteProperty>()) {
+        auto fbyte = (UByteProperty*)fprop;
 
         // Change the enum type to a uint8_t if necessary.
         if (fbyte->Enum != nullptr) {
@@ -261,8 +261,8 @@ genny::Type* genny_type_for_fproperty(genny::Namespace* g, FProperty* fprop) {
         }
 
         prop_type = ns->type(prop_typename);
-    } else if (fprop->IsA<FArrayProperty>()) {
-        auto farray = (FArrayProperty*)fprop;
+    } else if (fprop->IsA<UArrayProperty>()) {
+        auto farray = (UArrayProperty*)fprop;
         auto inner = farray->Inner;
         auto inner_type = genny_type_for_fproperty(g, inner);
 
@@ -271,8 +271,8 @@ genny::Type* genny_type_for_fproperty(genny::Namespace* g, FProperty* fprop) {
         } else {
             prop_type = ns->generic_type(prop_typename)->size(sizeof(TArray<int>));
         }
-    } else if (fprop->IsA<FEnumProperty>()) {
-        auto fenum = (FEnumProperty*)fprop;
+    } else if (fprop->IsA<UEnumProperty>()) {
+        auto fenum = (UEnumProperty*)fprop;
 
         // Change the enum type to the correct one.
         auto genny_enum = ns->enum_(prop_typename);
@@ -291,13 +291,13 @@ genny::Type* genny_type_for_fproperty(genny::Namespace* g, FProperty* fprop) {
     return prop_type;
 }
 
-void generate_fproperty(genny::Struct* s, FProperty* fprop) {
+void generate_fproperty(genny::Struct* s, UProperty* fprop) {
     auto ns = s->owner<genny::Namespace>();
     auto prop_name = narrow(fprop->NamePrivate);
     auto prop_type = genny_type_for_fproperty(ns, fprop);
 
-    if (fprop->IsA<FBoolProperty>()) {
-        auto fbool = (FBoolProperty*)fprop;
+    if (fprop->IsA<UBoolProperty>()) {
+        auto fbool = (UBoolProperty*)fprop;
 
         // A FieldMask of 0xFF indicates a native bool, otherwise its part of a bitfield.
         if (fbool->FieldMask != 0xFF) {
@@ -349,9 +349,9 @@ void generate_ufunction(genny::Struct* s, UFunction* ufunc) {
     std::unordered_set<genny::Variable*> out_params{};
 
     // Add params.
-    for (auto field = ufunc->ChildProperties; field != nullptr; field = field->Next) {
-        if (field->IsA<FProperty>()) {
-            auto fparam = (FProperty*)field;
+    for (auto field = ufunc->Children; field != nullptr; field = field->Next) {
+        if (field->IsA<UProperty>()) {
+            auto fparam = (UProperty*)field;
             auto param_flags = fparam->PropertyFlags;
             auto param_name = narrow(fparam->NamePrivate);
             auto param_type = genny_type_for_fproperty(ns, fparam);
@@ -464,9 +464,9 @@ void generate_ustruct(genny::Struct* genny_struct, UStruct* ustruct) {
 
 void generate_ustruct_members(genny::Struct* genny_struct, UStruct* ustruct) {
     // Add properties.
-    for (auto field = ustruct->ChildProperties; field != nullptr; field = field->Next) {
-        if (field->IsA<FProperty>()) {
-            generate_fproperty(genny_struct, (FProperty*)field);
+    for (auto field = ustruct->Children; field != nullptr; field = field->Next) {
+        if (field->IsA<UProperty>()) {
+            generate_fproperty(genny_struct, (UProperty*)field);
         }
     }
 }

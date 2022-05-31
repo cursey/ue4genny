@@ -1,5 +1,7 @@
 #include "UE4Genny.hpp"
 #include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include "UObject/EnumProperty.h"
 #include "kanan/core/Scan.hpp"
 #include CONFIG_HPP
 
@@ -33,6 +35,78 @@ UClass* UEnum::GetPrivateStaticClass() {
 
 UClass* UFunction::GetPrivateStaticClass() {
     return (UClass*)find_object("Class /Script/CoreUObject.Function");
+}
+
+UClass* UProperty::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.Property");
+}
+
+UClass* UByteProperty::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.ByteProperty");
+}
+
+UClass* UInt8Property::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.Int8Property");
+}
+
+UClass* UInt16Property::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.Int16Property");
+}
+
+UClass* UIntProperty::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.IntProperty");
+}
+
+UClass* UInt64Property::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.Int64Property");
+}
+
+UClass* UUInt16Property::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.UInt16Property");
+}
+
+UClass* UUInt32Property::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.UInt32Property");
+}
+
+UClass* UUInt64Property::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.UInt64Property");
+}
+
+UClass* UFloatProperty::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.FloatProperty");
+}
+
+UClass* UDoubleProperty::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.DoubleProperty");
+}
+
+UClass* UBoolProperty::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.BoolProperty");
+}
+
+UClass* UObjectProperty::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.ObjectProperty");
+}
+
+UClass* UNameProperty::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.NameProperty");
+}
+
+UClass* UStrProperty::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.StrProperty");
+}
+
+UClass* UArrayProperty::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.ArrayProperty");
+}
+
+UClass* UStructProperty::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.StructProperty");
+}
+
+UClass* UEnumProperty::GetPrivateStaticClass() {
+    return (UClass*)find_object("Class /Script/CoreUObject.EnumProperty");
 }
 
 FString FName::ToString() const {
