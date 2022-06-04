@@ -39,4 +39,4 @@ At the end of this process, simply inject `UE4Genny.dll` into the target game an
 
 ## Note about compatibility
 
-**UE4Genny** is only tested with fairly recent versions of UE4 and UE5. Older versions of UE4's reflection system was fairly different so **UE4Genny** won't work with those older versions. At least not by following the steps outlined above. For older versions you will likely need to make some minor changes to **UE4Genny** (basically `FProperty` was previously `UProperty` and so on for the various property types).
+This branch of **UE4Genny** is for older versions of UE4 that still use `UProperty`.
