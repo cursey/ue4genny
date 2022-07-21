@@ -403,9 +403,9 @@ void generate_ufunction(genny::Struct* s, UFunction* ufunc) {
             continue;
         }
 
-        os << "params." << param->name() << " = (";
+        os << "params." << param->usable_name() << " = (";
         param->type()->generate_typename_for(os, nullptr);
-        os << ")" << param->name() << ";\n";
+        os << ")" << param->usable_name() << ";\n";
     }
 
     if (genny_func->is_a<genny::StaticFunction>()) {
@@ -415,13 +415,13 @@ void generate_ufunction(genny::Struct* s, UFunction* ufunc) {
     }
 
     for (auto&& param : out_params) {
-        os << param->name() << " = params." << param->name() << ";\n";
+        os << param->usable_name() << " = params." << param->usable_name() << ";\n";
     }
 
     if (ret_param != nullptr) {
         os << "return (";
         genny_func->returns()->generate_typename_for(os, nullptr);
-        os << ")params." << ret_param->name() << ";\n";
+        os << ")params." << ret_param->usable_name() << ";\n";
     }
 
     genny_func->procedure(os.str());
