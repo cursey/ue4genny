@@ -3,6 +3,7 @@ set(UE4_SOURCE_DIR "${CMAKE_SOURCE_DIR}/Source" CACHE PATH "Where the UE4 source
 set(SDK_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/sdk" CACHE PATH "Where the generated SDK files will go")
 set(CONFIG_HPP "DRGConfig.hpp" CACHE STRING "The config header file to use")
 set(SDK_ADDITIONAL_INCLUDE_HPP "" CACHE STRING "An optional additional header to include in every generated file")
+set(SDK_UOBJECT_STRING_LOOKUP OFF CACHE BOOL "Whether to perform StaticClass lookups with strings instead of hashes")
 add_library(ue4genny SHARED 
     "src/kanan/core/Memory.cpp"
     "src/kanan/core/Module.cpp"
@@ -45,5 +46,8 @@ target_compile_definitions(ue4genny PUBLIC
 )
 if(SDK_ADDITIONAL_INCLUDE_HPP)
     target_compile_definitions(ue4genny PUBLIC SDK_ADDITIONAL_INCLUDE_HPP="${SDK_ADDITIONAL_INCLUDE_HPP}")
+endif()
+if(SDK_UOBJECT_STRING_LOOKUP)
+    target_compile_definitions(ue4genny PUBLIC SDK_UOBJECT_STRING_LOOKUP)
 endif()
 target_compile_features(ue4genny PUBLIC cxx_std_17)

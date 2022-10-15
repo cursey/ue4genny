@@ -16,23 +16,23 @@ size_t FMemory::QuantizeSize(size_t size, uint32_t) {
 }
 
 UClass* UStruct::GetPrivateStaticClass() {
-    return (UClass*)find_object("Class /Script/CoreUObject.Struct");
+    return (UClass*)find_uobject("Class /Script/CoreUObject.Struct");
 }
 
 UClass* UClass::GetPrivateStaticClass() {
-    return (UClass*)find_object("Class /Script/CoreUObject.Class");
+    return (UClass*)find_uobject("Class /Script/CoreUObject.Class");
 }
 
 UClass* UScriptStruct::GetPrivateStaticClass() {
-    return (UClass*)find_object("Class /Script/CoreUObject.ScriptStruct");
+    return (UClass*)find_uobject("Class /Script/CoreUObject.ScriptStruct");
 }
 
 UClass* UEnum::GetPrivateStaticClass() {
-    return (UClass*)find_object("Class /Script/CoreUObject.Enum");
+    return (UClass*)find_uobject("Class /Script/CoreUObject.Enum");
 }
 
 UClass* UFunction::GetPrivateStaticClass() {
-    return (UClass*)find_object("Class /Script/CoreUObject.Function");
+    return (UClass*)find_uobject("Class /Script/CoreUObject.Function");
 }
 
 FString FName::ToString() const {
