@@ -55,7 +55,7 @@ std::string get_full_name(UObjectBase* obj) {
     return narrow(c->GetFName()) + ' ' + obj_name;
 }
 
-UObjectBase* find_object(const char* obj_full_name) {
+UObjectBase* find_uobject(const char* obj_full_name) {
     static std::unordered_map<std::string, UObjectBase*> obj_map{};
 
     if (auto search = obj_map.find(obj_full_name); search != obj_map.end()) {
@@ -69,6 +69,29 @@ UObjectBase* find_object(const char* obj_full_name) {
             if (auto obj_base = obj_item->Object) {
                 if (get_full_name(obj_base) == obj_full_name) {
                     obj_map[obj_full_name] = obj_base;
+                    return obj_base;
+                }
+            }
+        }
+    }
+
+    return nullptr;
+}
+
+UObjectBase* find_uobject(size_t obj_full_name_hash) {
+    static std::unordered_map<size_t, UObjectBase*> obj_map{};
+
+    if (auto search = obj_map.find(obj_full_name_hash); search != obj_map.end()) {
+        return search->second;
+    }
+
+    auto obj_array = get_GUObjectArray();
+
+    for (auto i = 0; i < obj_array->GetObjectArrayNum(); ++i) {
+        if (auto obj_item = obj_array->IndexToObject(i)) {
+            if (auto obj_base = obj_item->Object) {
+                if (kanan::hash(get_full_name(obj_base)) == obj_full_name_hash) {
+                    obj_map[obj_full_name_hash] = obj_base;
                     return obj_base;
                 }
             }
@@ -392,7 +415,11 @@ void generate_ufunction(genny::Struct* s, UFunction* ufunc) {
 
     // Generate the procedure.
     std::ostringstream os{};
-    os << "static auto func = (UFunction*)(get_GUObjectArray()->IndexToObject(" << ufunc->GetUniqueID() << ")->Object);\n";
+#ifdef SDK_UOBJECT_STRING_LOOKUP
+    os << "static auto func = (UFunction*)(find_uobject(\"" << get_full_name(ufunc) << "\"));\n";
+#else
+    os << "static auto func = (UFunction*)(find_uobject(" << kanan::hash(get_full_name(ufunc)) << ")); // " << get_full_name(ufunc) << "\n";
+#endif
     param_struct->generate(os);
     param_struct->generate_typename_for(os, nullptr);
     os << " params{};\n";
@@ -475,7 +502,11 @@ void generate_uclass_functions(genny::Struct* genny_struct, UClass* uclass) {
     // Add StaticClass().
     auto static_class = genny_struct->static_function("StaticClass")->returns(genny_struct->ptr());
     std::ostringstream os{};
-    os << "static auto res = get_GUObjectArray()->IndexToObject(" << uclass->GetUniqueID() << ")->Object;\n";
+#ifdef SDK_UOBJECT_STRING_LOOKUP
+    os << "static auto res = find_uobject(\"" << get_full_name(uclass) << "\");\n";
+#else
+    os << "static auto res = find_uobject(" << kanan::hash(get_full_name(uclass)) << "); // " << get_full_name(uclass) << "\n";
+#endif
     os << "return (";
     static_class->returns()->generate_typename_for(os, genny_struct);
     os << ")res;";
@@ -496,7 +527,7 @@ void generate() {
     sdk.include("cstdint");
 
 #ifdef SDK_ADDITIONAL_INCLUDE_HPP
-    sdk.include_local(SDK_ADDITIONAL_INCLUDE_HPP);
+    sdk.include(SDK_ADDITIONAL_INCLUDE_HPP);
 #endif
 
     // Add basic types

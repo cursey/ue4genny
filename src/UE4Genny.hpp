@@ -5,7 +5,8 @@
 #include "UObject/UObjectArray.h"
 
 FUObjectArray* get_GUObjectArray();
-UObjectBase* find_object(const char* obj_path);
+UObjectBase* find_uobject(const char* obj_path);
+UObjectBase* find_uobject(size_t obj_path_hash);
 std::string narrow(const FString& fstr);
 std::string narrow(const FName& fname);
 
